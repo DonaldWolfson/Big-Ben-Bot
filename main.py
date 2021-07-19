@@ -89,6 +89,8 @@ async def join(ctx):
         
         # Play the created audio.
         voice.play(FFmpegPCMAudio("audio/CURRENT.mp3"))
+
+        # FIXME: Simple wait, fix with multi-threading?
         while voice.is_playing():
                 continue
 
