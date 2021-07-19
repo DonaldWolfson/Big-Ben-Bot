@@ -2,6 +2,7 @@
 
 import os
 import pytz
+import asyncio
 import discord
 import datetime
 
@@ -31,7 +32,7 @@ bot = commands.Bot(command_prefix = "!", intents=intents)
 ############################### Helper Methods #################################
 
 # Helper function to get PST Time and return the current hour.
-def get_pst_time():
+def get_pst_hour():
     date = datetime.now(tz=pytz.utc)
     date = date.astimezone(timezone("US/Pacific"))
 
@@ -45,7 +46,7 @@ def get_pst_time():
 # Helper function generates current gong.
 def make_gong():
     # Get how many hours (gongs) to play.
-    hours = get_pst_time()
+    hours = get_pst_hour()
 
     # Reset the current_gong to the intro.
     current_gong = INTRO
@@ -73,8 +74,15 @@ async def on_ready():
 
 # Print a short introduction to chat.
 @bot.command()
+async def start(ctx):
+    hourly_gong.start(ctx)
+    await ctx.send("Tik Tok! You'll be hearing from me every hour!")
+
+
+# Print a short introduction to chat.
+@bot.command()
 async def hello(ctx):
-    await ctx.send("Hello, I am Big-Ben-Bot! You will hear from me soon.")
+    await ctx.send("Hello, I am Big-Ben-Bot!")
 
 
 # Joins voice channel.
@@ -111,5 +119,27 @@ async def leave(ctx):
     else:
         await ctx.send("GONG! I'm not in a voice channel!")
 
+
+@tasks.loop(minutes=5)
+async def hourly_gong(ctx):
+    if ctx.author.voice:
+        channel = ctx.message.author.voice.channel
+        voice = await channel.connect()
+
+        # Generate the file, `CURRENT.mp3` which has the current hour in gongs.
+        make_gong()
+        
+        # Play the created audio.
+        voice.play(FFmpegPCMAudio("audio/CURRENT.mp3"))
+
+        # FIXME: Simple wait, fix with multi-threading?
+        while voice.is_playing():
+                continue
+
+        # Leave the channel.
+        await voice.disconnect()
+
+        # Delete the file once done.
+        os.remove("audio/CURRENT.mp3") 
 
 bot.run(os.getenv("DISCORD_TOKEN"))
