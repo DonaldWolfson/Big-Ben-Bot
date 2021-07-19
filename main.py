@@ -84,15 +84,18 @@ async def join(ctx):
         channel = ctx.message.author.voice.channel
         voice = await channel.connect()
 
-        # Generate the queue.
+        # Generate the file, `CURRENT.mp3` which has the current hour in gongs.
         make_gong()
         
         # Play the created audio.
-        source = FFmpegPCMAudio("audio/CURRENT.mp3")
-        player = await voice.play(source)
+        voice.play(FFmpegPCMAudio("audio/CURRENT.mp3"))
+        while voice.is_playing():
+                continue
 
         # Leave the channel.
-        channel = await ctx.guild.voice_client.disconnect()
+        await voice.disconnect()
+
+        # Delete the file once done.
         os.remove("audio/CURRENT.mp3")
     else:
         await ctx.send("GONG! You're not in a voice channel!")
