@@ -25,9 +25,8 @@ load_dotenv()
 intents = discord.Intents.default()
 intents.members = True
 
-# Setup the client.
-client = commands.Bot(command_prefix = "!", intents=intents)
-bot = commands.Bot("!")
+# Setup the bot.
+bot = commands.Bot(command_prefix = "!", intents=intents)
 
 ############################### Helper Methods #################################
 
@@ -66,43 +65,20 @@ def make_gong():
 
 
 # Debugging event.
-@client.event
+@bot.event
 async def on_ready():
     print("Big-Ben-Bot is ready!")
     print("---------------------") 
 
 
 # Print a short introduction to chat.
-@client.command()
+@bot.command()
 async def hello(ctx):
     await ctx.send("Hello, I am Big-Ben-Bot! You will hear from me soon.")
 
 
-# TODO: Joins general VC and gongs.
-# @tasks.loop(hours=1)
-# async def hourly_gong():
-#     channel = bot.get_channel(os.getenv("VOICE_CHANNEL"))
-#     voice = await channel.connect()
-
-#     make_gong()
-
-#     # Play the created audio.
-#     source = FFmpegPCMAudio("audio/CURRENT.mp3")
-#     player = await voice.play(source)
-
-#     # Leave the channel.
-#     channel = await ctx.guild.voice_client.disconnect()
-#     os.remove("audio/CURRENT.mp3")
-
-
-# FIXME: Prep the bot before doing hourly voice channel gongs.
-# @hourly_gong.before_loop()
-# async def before():
-#     await bot.wait_until_ready()
-
-
 # Joins voice channel.
-@client.command(pass_context = True)
+@bot.command(pass_context = True)
 async def join(ctx):
     if ctx.author.voice:
         channel = ctx.message.author.voice.channel
@@ -123,7 +99,7 @@ async def join(ctx):
 
 
 # Leaves voice channel.
-@client.command(pass_context = True)
+@bot.command(pass_context = True)
 async def leave(ctx):
     if ctx.voice_client:
         channel = await ctx.guild.voice_client.disconnect()
@@ -131,5 +107,4 @@ async def leave(ctx):
         await ctx.send("GONG! I'm not in a voice channel!")
 
 
-#hourly_gong.start()
-client.run(os.getenv("DISCORD_TOKEN"))
+bot.run(os.getenv("DISCORD_TOKEN"))
