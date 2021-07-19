@@ -1,6 +1,7 @@
 ################################## Imports #####################################
 
 import os
+import time
 import pytz
 import asyncio
 import discord
@@ -19,6 +20,8 @@ current_gong = None
 INTRO = AudioSegment.from_mp3("audio/INTRODUCTION.mp3")
 GONG = AudioSegment.from_mp3("audio/GONG.mp3")
 FINAL = AudioSegment.from_mp3("audio/FINAL.mp3")
+
+FFMPEG_OPTIONS = {'options': '-vn'}
 
 # Loads variables stored in file `.env`
 load_dotenv()
@@ -48,14 +51,19 @@ def make_gong():
     # Get how many hours (gongs) to play.
     hours = get_pst_hour()
 
+    # DEBUG
+    print("\t- Number of gongs: " + str(hours))
+
     # Reset the current_gong to the intro.
     current_gong = INTRO
 
     # Queue up every gong up until the last.
     for i in range(hours - 1):
+        print("\t\t- Gong," + str(i))
         current_gong += GONG
     
     # Queue up the final gong.
+    print("\t\t- Gong," + str(i + 1))
     current_gong += FINAL
 
     # Export custom gong to file, `CURRENT.mp3`.
@@ -75,7 +83,9 @@ async def on_ready():
 # Print a short introduction to chat.
 @bot.command()
 async def start(ctx):
-    hourly_gong.start(ctx)
+    print("\t- Hourly Gongs have started")
+
+    hourly_gong.start(ctx)    
     await ctx.send("Tik Tok! You'll be hearing from me every hour!")
 
 
@@ -85,59 +95,26 @@ async def hello(ctx):
     await ctx.send("Hello, I am Big-Ben-Bot!")
 
 
-# Joins voice channel.
-@bot.command(pass_context = True)
-async def join(ctx):
-    if ctx.author.voice:
-        channel = ctx.message.author.voice.channel
-        voice = await channel.connect()
-
-        # Generate the file, `CURRENT.mp3` which has the current hour in gongs.
-        make_gong()
-        
-        # Play the created audio.
-        voice.play(FFmpegPCMAudio("audio/CURRENT.mp3"))
-
-        # FIXME: Simple wait, fix with multi-threading?
-        while voice.is_playing():
-                continue
-
-        # Leave the channel.
-        await voice.disconnect()
-
-        # Delete the file once done.
-        os.remove("audio/CURRENT.mp3")
-    else:
-        await ctx.send("GONG! You're not in a voice channel!")
-
-
-# Leaves voice channel.
-@bot.command(pass_context = True)
-async def leave(ctx):
-    if ctx.voice_client:
-        channel = await ctx.guild.voice_client.disconnect()
-    else:
-        await ctx.send("GONG! I'm not in a voice channel!")
-
-
 @tasks.loop(minutes=5)
 async def hourly_gong(ctx):
     if ctx.author.voice:
         channel = ctx.message.author.voice.channel
         voice = await channel.connect()
+        print("\t- Bot has connected from VC")
 
         # Generate the file, `CURRENT.mp3` which has the current hour in gongs.
         make_gong()
         
         # Play the created audio.
-        voice.play(FFmpegPCMAudio("audio/CURRENT.mp3"))
+        # FIXME: Known bug that cuts off audio need to look into this more.
+        voice.play(FFmpegPCMAudio("audio/CURRENT.mp3", **FFMPEG_OPTIONS))
 
-        # FIXME: Simple wait, fix with multi-threading?
         while voice.is_playing():
-                continue
+            time.sleep(1)
 
-        # Leave the channel.
-        await voice.disconnect()
+        # FIXME: Leave the channel, currently doesn't do this.
+        await ctx.guild.voice_client.disconnect(force=True)
+        print("\t- Bot has disconnected from VC")
 
         # Delete the file once done.
         os.remove("audio/CURRENT.mp3") 
